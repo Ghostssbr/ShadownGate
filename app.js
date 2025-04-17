@@ -79,8 +79,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const noProjects = document.getElementById('noProjects');
         const projects = getProjects();
         
-        console.log('Projetos carregados:', projects); // Debug
-        
         container.innerHTML = '';
         noProjects.classList.toggle('hidden', projects.length > 0);
 
@@ -114,7 +112,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
             card.addEventListener('click', () => {
-                console.log('Navegando para projeto:', project.id); // Debug
                 window.location.href = `dashboard.html?project=${encodeURIComponent(project.id)}`;
             });
             container.appendChild(card);
@@ -160,18 +157,33 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 projects.push(newProject);
                 localStorage.setItem('shadowGateProjects4', JSON.stringify(projects));
-                console.log('Projeto salvo:', newProject); // Debug
                 
-                // Supabase
+                // Supabase - Criar registro nas duas tabelas
                 if (window.supabase) {
-                    const { error } = await supabase
+                    // Tabela project_tokens
+                    const { error: tokenError } = await supabase
                         .from('project_tokens')
                         .insert([{
                             project_id: idProject,
                             created_at: new Date().toISOString()
                         }]);
                     
-                    if (error) throw error;
+                    if (tokenError) throw tokenError;
+                    
+                    // Tabela project_requests
+                    const { error: requestError } = await supabase
+                        .from('project_requests')
+                        .insert([{
+                            project_id: idProject,
+                            requests_today: 0,
+                            total_requests: 0,
+                            last_request_date: today,
+                            daily_requests: { [today]: 0 },
+                            level: 1,
+                            updated_at: new Date().toISOString()
+                        }]);
+                    
+                    if (requestError) throw requestError;
                 }
                 
                 showAlert('Projeto criado com sucesso!', 'success');
